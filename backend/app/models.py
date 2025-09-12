@@ -1,3 +1,4 @@
+from pydantic import EmailStr, field_validator
 from sqlmodel import SQLModel, Field # type: ignore
 from datetime import datetime
 
@@ -6,6 +7,13 @@ class Cliente(SQLModel, table=True):
     nome: str
     telefone: str
     email: str
+    
+    @field_validator('email')
+    @classmethod
+    def validar_email(cls, v):
+        if '@' not in v:
+            raise ValueError('Email inválido')
+        return v
 
 class Agendamento(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
