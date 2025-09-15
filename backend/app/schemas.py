@@ -4,8 +4,6 @@ from pydantic import BaseModel, EmailStr, ConfigDict
 
 # Schemas para Cliente
 class ClienteBase(BaseModel):
-    
-       
     nome: str
     telefone: str
     email: EmailStr
@@ -20,7 +18,6 @@ class ClienteRead(ClienteBase):
 
 # Schemas para Agendamento
 class AgendamentoBase(BaseModel):
-        
     cliente_id: int
     data_hora: datetime
     servico: str
@@ -30,8 +27,6 @@ class AgendamentoCreate(AgendamentoBase):
     pass
 
 class AgendamentoRead(AgendamentoBase):
-   
     id: int
-    
     model_config = ConfigDict(from_attributes=True) 
         
