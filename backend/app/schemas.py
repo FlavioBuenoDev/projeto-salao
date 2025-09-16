@@ -1,6 +1,7 @@
-from typing import Optional
 from datetime import datetime
-from pydantic import BaseModel, EmailStr, ConfigDict
+from typing import Optional
+
+from pydantic import BaseModel, ConfigDict, EmailStr
 
 
 # Schemas para Cliente

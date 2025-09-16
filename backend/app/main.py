@@ -1,11 +1,14 @@
 from contextlib import asynccontextmanager
-from datetime import datetime, date, timezone
-from fastapi import FastAPI, Depends, HTTPException
-from sqlmodel import Session, select, and_, SQLModel
-from app.models import Cliente, Agendamento
-from app.database import get_session, engine
-from app.schemas import AgendamentoCreate, AgendamentoRead, ClienteCreate, ClienteRead
+from datetime import date, datetime, timezone
+
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from sqlmodel import Session, SQLModel, and_, select
+
+from app.database import engine, get_session
+from app.models import Agendamento, Cliente
+from app.schemas import (AgendamentoCreate, AgendamentoRead, ClienteCreate,
+                         ClienteRead)
 
 
 # Lifespan handler para eventos de startup e shutdown

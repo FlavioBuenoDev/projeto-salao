@@ -1,5 +1,5 @@
-from sqlmodel import create_engine, Session  # type: ignore
 from sqlalchemy.orm import sessionmaker
+from sqlmodel import Session, create_engine  # type: ignore
 
 DATABASE_URL = "sqlite:///database.db"
 
