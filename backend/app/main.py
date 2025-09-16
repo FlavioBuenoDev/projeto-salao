@@ -7,8 +7,7 @@ from sqlmodel import Session, SQLModel, and_, select
 
 from app.database import engine, get_session
 from app.models import Agendamento, Cliente
-from app.schemas import (AgendamentoCreate, AgendamentoRead, ClienteCreate,
-                         ClienteRead)
+from app.schemas import AgendamentoCreate, AgendamentoRead, ClienteCreate, ClienteRead
 
 
 # Lifespan handler para eventos de startup e shutdown
