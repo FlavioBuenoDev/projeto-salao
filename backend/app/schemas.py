@@ -2,19 +2,22 @@ from typing import Optional
 from datetime import datetime
 from pydantic import BaseModel, EmailStr, ConfigDict
 
+
 # Schemas para Cliente
 class ClienteBase(BaseModel):
     nome: str
     telefone: str
     email: EmailStr
 
-class ClienteCreate(ClienteBase):    
+
+class ClienteCreate(ClienteBase):
     pass
+
 
 class ClienteRead(ClienteBase):
     id: int
     model_config = ConfigDict(from_attributes=True)
- 
+
 
 # Schemas para Agendamento
 class AgendamentoBase(BaseModel):
@@ -23,10 +26,11 @@ class AgendamentoBase(BaseModel):
     servico: str
     observacoes: Optional[str] = None
 
+
 class AgendamentoCreate(AgendamentoBase):
     pass
 
+
 class AgendamentoRead(AgendamentoBase):
     id: int
-    model_config = ConfigDict(from_attributes=True) 
-        
+    model_config = ConfigDict(from_attributes=True)
