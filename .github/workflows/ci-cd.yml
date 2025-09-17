@@ -48,7 +48,7 @@ jobs:
         cd backend
         python --version
         pip list
-        which python
+        which python 
 
   lint-code:
     runs-on: ubuntu-latest
