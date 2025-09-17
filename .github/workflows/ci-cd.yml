@@ -27,9 +27,9 @@ jobs:
     - name: Run tests with coverage
       run: |
         cd backend
-        DATABASE_URL=sqlite:///:memory: python -m pytest tests/ -v --cov=app --cov-report=xml
+        python -m pytest tests/ -v --cov=app --cov-report=xml --tb=short
 
-        
+
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3
       with:
