@@ -8,12 +8,14 @@ from fastapi.testclient import TestClient
 # Configurar banco de dados em memória para testes
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 
+
 @pytest.fixture(scope="session", autouse=True)
 def create_test_database():
     """Criar tabelas antes dos testes e limpar após"""
     SQLModel.metadata.create_all(engine)
     yield
     SQLModel.metadata.drop_all(engine)
+
 
 @pytest.fixture(scope="function")
 def client():
