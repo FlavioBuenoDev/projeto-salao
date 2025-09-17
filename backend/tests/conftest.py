@@ -1,9 +1,11 @@
-import pytest
 import os
+
+import pytest
+from fastapi.testclient import TestClient
 from sqlmodel import SQLModel  # Importar SQLModel diretamente do sqlmodel
+
 from app.database import engine  # Importar apenas engine do app.database
 from app.main import app
-from fastapi.testclient import TestClient
 
 # Configurar banco de dados em memória para testes
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
