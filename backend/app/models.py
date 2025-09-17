@@ -1,8 +1,8 @@
 from datetime import datetime
 
-from pydantic import EmailStr, field_validator
+from pydantic import field_validator
 from sqlmodel import Field, SQLModel  # type: ignore
-
+from typing import Optional
 
 class Cliente(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
