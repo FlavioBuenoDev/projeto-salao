@@ -8,6 +8,7 @@ from sqlmodel import Session, SQLModel, and_, select
 from app.database import engine, get_session
 from app.models import Agendamento, Cliente
 from app.schemas import AgendamentoCreate, AgendamentoRead, ClienteCreate, ClienteRead
+from fastapi.middleware.cors import CORSMiddleware
 
 
 # Lifespan handler para eventos de startup e shutdown
@@ -30,7 +31,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
