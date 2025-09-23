@@ -10,6 +10,22 @@ from app.models import Agendamento, Cliente
 from app.schemas import AgendamentoCreate, AgendamentoRead, ClienteCreate, ClienteRead
 from fastapi.middleware.cors import CORSMiddleware
 
+from datetime import timedelta
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
+from sqlmodel import Session, select
+
+from app.auth import (
+    create_access_token, get_current_user, get_current_active_user,
+    require_admin, require_staff, ACCESS_TOKEN_EXPIRE_MINUTES
+)
+
+from app.models import User
+
+from app.schemas import (
+    UserCreate, UserRead, UserUpdate, Token, LoginRequest, ChangePasswordRequest, LoginResponse, TokenWithUser
+)
+
 
 # Lifespan handler para eventos de startup e shutdown
 @asynccontextmanager
@@ -120,7 +136,9 @@ def deletar_cliente(cliente_id: int, session: Session = Depends(get_session)):
 # Rotas para Agendamentos (única definição do endpoint criar_agendamento)
 @app.post("/agendamentos/", response_model=AgendamentoRead)
 def criar_agendamento(
-    agendamento: AgendamentoCreate, session: Session = Depends(get_session)
+    agendamento: AgendamentoCreate, 
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_active_user)
 ):
     # Verificar se o cliente existe
     cliente = session.get(Cliente, agendamento.cliente_id)
@@ -216,7 +234,9 @@ def deletar_agendamento(agendamento_id: int, session: Session = Depends(get_sess
 # Consultas com filtros
 @app.get("/agendamentos/cliente/{cliente_id}", response_model=list[AgendamentoRead])
 def listar_agendamentos_cliente(
-    cliente_id: int, session: Session = Depends(get_session)
+    cliente_id: int, 
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_active_user)
 ):
     # Verificar se o cliente existe
     cliente = session.get(Cliente, cliente_id)
@@ -243,3 +263,195 @@ def listar_agendamentos_data(
         )
     ).all()
     return agendamentos
+# =============================================================================
+# ROTAS DE AUTENTICAÇÃO
+# =============================================================================
+
+@app.post("/auth/register", response_model=UserRead)
+def register(user_data: UserCreate, session: Session = Depends(get_session)):
+    """
+    Registrar um novo usuário
+    """
+    try:
+        # Verificar se o username já existe
+        existing_user = session.exec(select(User).where(User.username == user_data.username)).first()
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Username já está em uso"
+            )
+        
+        # Verificar se o email já existe
+        existing_email = session.exec(select(User).where(User.email == user_data.email)).first()
+        if existing_email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email já está em uso"
+            )
+        
+        # Criar o usuário
+        db_user = User(
+            username=user_data.username,
+            email=user_data.email,
+            full_name=user_data.full_name,
+            role=user_data.role
+        )
+        
+        # Definir a senha (fazer hash)
+        db_user.set_password(user_data.password)
+        
+        session.add(db_user)
+        session.commit()
+        session.refresh(db_user)
+        
+        return db_user
+        
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao criar usuário: {str(e)}"
+        )
+        
+@app.post("/auth/login", response_model=Token)
+def login(login_data: LoginRequest, session: Session = Depends(get_session)):
+    print(f"Tentativa de login para: {login_data.username}")
+    """
+    Fazer login e obter token de acesso
+    """
+    # Buscar usuário pelo username
+    user = session.exec(select(User).where(User.username == login_data.username)).first()
+    print(f"Usuário encontrado: {user is not None}")
+    
+    if user:
+        print(f"Senha correta: {user.verify_password(login_data.password)}")
+        print(f"Usuário ativo: {user.is_active}")
+    
+    # Verificar se o usuário existe e a senha está correta
+    if not user or not user.verify_password(login_data.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Username ou senha incorretos"
+        )
+    
+    # Verificar se o usuário está ativo
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Usuário inativo"
+        )
+    
+    # Criar token de acesso
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.username}, 
+        expires_delta=access_token_expires
+    )
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer"
+        # Remova a linha abaixo para corresponder ao schema Token
+        # "user": user
+    }
+        
+        
+@app.post("/auth/login-with-user", response_model=LoginResponse)
+def login_with_user(login_data: LoginRequest, session: Session = Depends(get_session)):
+    """
+    Fazer login e obter token de acesso com informações do usuário
+    """
+    user = session.exec(select(User).where(User.username == login_data.username)).first()
+    
+    if not user or not user.verify_password(login_data.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Username ou senha incorretos"
+        )
+    
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Usuário inativo"
+        )
+    
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.username}, 
+        expires_delta=access_token_expires
+    )
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": user
+    }
+
+@app.get("/auth/me", response_model=UserRead)
+async def get_my_info(current_user: User = Depends(get_current_active_user)):
+    """
+    Obter informações do usuário atual
+    """
+    return current_user
+
+@app.put("/auth/me", response_model=UserRead)
+async def update_my_info(
+    user_update: UserUpdate,
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session)
+):
+    """
+    Atualizar informações do usuário atual
+    """
+    update_data = user_update.dict(exclude_unset=True)
+    
+    # Atualizar campos permitidos
+    for field, value in update_data.items():
+        if field == "password" and value:
+            current_user.set_password(value)
+        elif hasattr(current_user, field):
+            setattr(current_user, field, value)
+    
+    current_user.update_timestamp()
+    session.add(current_user)
+    session.commit()
+    session.refresh(current_user)
+    
+    return current_user
+
+# =============================================================================
+# ROTAS ADMINISTRATIVAS (apenas para administradores)
+# =============================================================================
+
+def require_admin(current_user: User = Depends(get_current_active_user)):
+    """Verifica se o usuário é administrador"""
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Permissão insuficiente"
+        )
+    return current_user
+
+@app.get("/admin/users", response_model=list[UserRead])
+async def list_users(
+    skip: int = 0,
+    limit: int = 100,
+    current_user: User = Depends(require_admin),
+    session: Session = Depends(get_session)
+):
+    """Listar todos os usuários (apenas admin)"""
+    users = session.exec(select(User).offset(skip).limit(limit)).all()
+    return users
+
+@app.get("/admin/users/{user_id}", response_model=UserRead)
+async def get_user(
+    user_id: int,
+    current_user: User = Depends(require_admin),
+    session: Session = Depends(get_session)
+):
+    """Obter informações de um usuário específico (apenas admin)"""
+    user = session.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    return user
+
