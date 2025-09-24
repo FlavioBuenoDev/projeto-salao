@@ -1,31 +1,30 @@
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timezone
+from typing import Optional
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import Session, SQLModel, and_, select
 
 from app.database import engine, get_session
-from app.models import Agendamento, Cliente
-from app.schemas import AgendamentoCreate, AgendamentoRead, ClienteCreate, ClienteRead
-from fastapi.middleware.cors import CORSMiddleware
-
-from datetime import timedelta
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
-from sqlmodel import Session, select
-
-from app.auth import (
-    create_access_token, get_current_user, get_current_active_user,
-    require_admin, require_staff, ACCESS_TOKEN_EXPIRE_MINUTES
-)
-
-from app.models import User
+from app.models import Agendamento, Cliente, User
 
 from app.schemas import (
-    UserCreate, UserRead, UserUpdate, Token, LoginRequest, ChangePasswordRequest, LoginResponse, TokenWithUser
+    AgendamentoCreate, AgendamentoRead, 
+    ClienteCreate, ClienteRead, 
+    UserCreate, UserRead,  # ← Usar essas
+    Token, LoginRequest, LoginResponse  # ← Se necessário
 )
 
+# Importar do security.py local
+from app.security import (
+    verify_password, 
+    create_access_token, 
+    get_current_user,
+    get_password_hash,
+    require_admin
+)
 
 # Lifespan handler para eventos de startup e shutdown
 @asynccontextmanager
@@ -36,7 +35,6 @@ async def lifespan(app: FastAPI):
     yield
     # Shutdown event - limpar recursos se necessário
     print("Encerrando aplicação...")
-
 
 app = FastAPI(
     title="Sistema de Agendamento - Salão de Beleza",
@@ -53,60 +51,160 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# =============================================================================
+# FUNÇÕES AUXILIARES
+# =============================================================================
+
+def get_current_active_user(current_user: User = Depends(get_current_user)):
+    """Verifica se usuário está ativo"""
+    if not current_user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Usuário inativo"
+        )
+    return current_user
+
+# =============================================================================
+# ROTAS DE AUTENTICAÇÃO
+# =============================================================================
+
+@app.post("/login")
+def login(form_data: OAuth2PasswordRequestForm = Depends(), session: Session = Depends(get_session)):
+    """
+    Autentica usuário e retorna token JWT
+    """
+    # 1. Buscar usuário no banco (usando SQLModel)
+    statement = select(User).where(User.username == form_data.username)
+    user = session.exec(statement).first()
+    
+    # 2. Verificar se usuário existe e senha está correta
+    if not user or not verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Usuário ou senha incorretos",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # 3. Criar token JWT
+    access_token = create_access_token(data={"sub": user.username})
+    
+    # 4. Retornar token
+    return {
+        "access_token": access_token, 
+        "token_type": "bearer",
+        "user_id": user.id,
+        "username": user.username
+    }
+
+@app.post("/register")
+def register_user(user_data: UserCreate, session: Session = Depends(get_session)):
+    """
+    Registra novo usuário
+    """
+    # Verificar se usuário já existe
+    statement = select(User).where(
+        (User.username == user_data.username) | (User.email == user_data.email)
+    )
+    existing_user = session.exec(statement).first()
+    
+    if existing_user:
+        raise HTTPException(
+            status_code=400,
+            detail="Username ou email já cadastrado"
+        )
+    
+    # Criar novo usuário
+    hashed_password = get_password_hash(user_data.password)
+    new_user = User(
+        username=user_data.username,
+        email=user_data.email,
+        full_name=user_data.full_name,
+        hashed_password=hashed_password,
+        role=user_data.role or "user",
+        is_active=True
+    )
+    
+    session.add(new_user)
+    session.commit()
+    session.refresh(new_user)
+    
+    return {"message": "Usuário criado com sucesso", "user_id": new_user.id}
+
+@app.get("/auth/me")
+async def get_my_info(current_user: User = Depends(get_current_active_user)):
+    """Obter informações do usuário atual"""
+    return {
+        "id": current_user.id,
+        "username": current_user.username,
+        "email": current_user.email,
+        "role": current_user.role,
+        "is_active": current_user.is_active
+    }
+
+# =============================================================================
+# ROTAS PÚBLICAS
+# =============================================================================
 
 @app.get("/")
 async def root():
     return {"message": "Bem-vindo ao sistema de agendamento!"}
 
-
 @app.get("/health")
 async def health_check():
     return {"status": "OK", "message": "Sistema funcionando corretamente"}
 
+# =============================================================================
+# ROTAS PARA CLIENTES (Protegidas)
+# =============================================================================
 
-# Rotas para Clientes
-@app.post(
-    "/clientes/",
-    response_model=ClienteRead,
-    summary="Criar um novo cliente",
-    description="Endpoint para cadastrar um novo cliente no sistema",
-    response_description="Dados do cliente criado",
-)
-def criar_cliente(cliente: ClienteCreate, session: Session = Depends(get_session)):
-    # Corrigido: Criar instância do modelo Cliente a partir do schema
+@app.post("/clientes/", 
+          response_model=ClienteRead, 
+          summary="Criar um novo cliente",
+          description="Endpoint para cadastrar um novo cliente no sistema",
+          response_description="Dados do cliente criado")
+def criar_cliente(
+    cliente: ClienteCreate, 
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_active_user)
+):
     db_cliente = Cliente(
-        nome=cliente.nome, telefone=cliente.telefone, email=cliente.email
+        nome=cliente.nome, 
+        telefone=cliente.telefone, 
+        email=cliente.email
     )
     session.add(db_cliente)
     session.commit()
     session.refresh(db_cliente)
     return db_cliente
 
-
-@app.get(
-    "/clientes/",
-    response_model=list[ClienteRead],
-    summary="Listar todos os clientes",
-    description="Retorna uma lista com todos os clientes cadastrados",
-)
-def listar_clientes(session: Session = Depends(get_session)):
+@app.get("/clientes/", 
+         response_model=list[ClienteRead],
+         summary="Listar todos os clientes",
+         description="Retorna uma lista com todos os clientes cadastrados")
+def listar_clientes(
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_active_user)
+):
     clientes = session.exec(select(Cliente)).all()
     return clientes
 
-
 @app.get("/clientes/{cliente_id}", response_model=ClienteRead)
-def ler_cliente(cliente_id: int, session: Session = Depends(get_session)):
+def ler_cliente(
+    cliente_id: int, 
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_active_user)
+):
     cliente = session.get(Cliente, cliente_id)
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente não encontrado")
     return cliente
-
 
 @app.put("/clientes/{cliente_id}", response_model=ClienteRead)
 def atualizar_cliente(
     cliente_id: int,
     cliente_update: ClienteCreate,
     session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_active_user)
 ):
     cliente = session.get(Cliente, cliente_id)
     if not cliente:
@@ -121,9 +219,12 @@ def atualizar_cliente(
     session.refresh(cliente)
     return cliente
 
-
 @app.delete("/clientes/{cliente_id}")
-def deletar_cliente(cliente_id: int, session: Session = Depends(get_session)):
+def deletar_cliente(
+    cliente_id: int, 
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_admin)  
+):
     cliente = session.get(Cliente, cliente_id)
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente não encontrado")
@@ -132,8 +233,10 @@ def deletar_cliente(cliente_id: int, session: Session = Depends(get_session)):
     session.commit()
     return {"message": "Cliente deletado com sucesso"}
 
+# =============================================================================
+# ROTAS PARA AGENDAMENTOS (Protegidas)
+# =============================================================================
 
-# Rotas para Agendamentos (única definição do endpoint criar_agendamento)
 @app.post("/agendamentos/", response_model=AgendamentoRead)
 def criar_agendamento(
     agendamento: AgendamentoCreate, 
@@ -149,7 +252,6 @@ def criar_agendamento(
     agora_utc = datetime.now(timezone.utc)
     data_agendamento = agendamento.data_hora
 
-    # Se a data do agendamento não tem fuso horário, assumir que é UTC
     if data_agendamento.tzinfo is None:
         data_agendamento = data_agendamento.replace(tzinfo=timezone.utc)
 
@@ -166,7 +268,6 @@ def criar_agendamento(
             status_code=400, detail="Já existe um agendamento para este horário"
         )
 
-    # Corrigido: Criar instância do modelo Agendamento a partir do schema
     db_agendamento = Agendamento(
         cliente_id=agendamento.cliente_id,
         data_hora=agendamento.data_hora,
@@ -179,26 +280,31 @@ def criar_agendamento(
     session.refresh(db_agendamento)
     return db_agendamento
 
-
 @app.get("/agendamentos/", response_model=list[AgendamentoRead])
-def listar_agendamentos(session: Session = Depends(get_session)):
+def listar_agendamentos(
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_active_user)
+):
     agendamentos = session.exec(select(Agendamento)).all()
     return agendamentos
 
-
 @app.get("/agendamentos/{agendamento_id}", response_model=AgendamentoRead)
-def ler_agendamento(agendamento_id: int, session: Session = Depends(get_session)):
+def ler_agendamento(
+    agendamento_id: int, 
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_active_user)
+):
     agendamento = session.get(Agendamento, agendamento_id)
     if not agendamento:
         raise HTTPException(status_code=404, detail="Agendamento não encontrado")
     return agendamento
-
 
 @app.put("/agendamentos/{agendamento_id}", response_model=AgendamentoRead)
 def atualizar_agendamento(
     agendamento_id: int,
     agendamento_data: AgendamentoCreate,
     session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_active_user)
 ):
     agendamento = session.get(Agendamento, agendamento_id)
     if not agendamento:
@@ -219,9 +325,12 @@ def atualizar_agendamento(
     session.refresh(agendamento)
     return agendamento
 
-
 @app.delete("/agendamentos/{agendamento_id}")
-def deletar_agendamento(agendamento_id: int, session: Session = Depends(get_session)):
+def deletar_agendamento(
+    agendamento_id: int, 
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_active_user)
+):
     agendamento = session.get(Agendamento, agendamento_id)
     if not agendamento:
         raise HTTPException(status_code=404, detail="Agendamento não encontrado")
@@ -230,8 +339,10 @@ def deletar_agendamento(agendamento_id: int, session: Session = Depends(get_sess
     session.commit()
     return {"message": "Agendamento deletado com sucesso"}
 
+# =============================================================================
+# CONSULTAS COM FILTROS (Protegidas)
+# =============================================================================
 
-# Consultas com filtros
 @app.get("/agendamentos/cliente/{cliente_id}", response_model=list[AgendamentoRead])
 def listar_agendamentos_cliente(
     cliente_id: int, 
@@ -248,10 +359,11 @@ def listar_agendamentos_cliente(
     ).all()
     return agendamentos
 
-
 @app.get("/agendamentos/data/{data_consulta}", response_model=list[AgendamentoRead])
 def listar_agendamentos_data(
-    data_consulta: date, session: Session = Depends(get_session)
+    data_consulta: date, 
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_active_user)
 ):
     # Calcular início e fim do dia
     inicio_dia = datetime.combine(data_consulta, datetime.min.time())
@@ -263,195 +375,97 @@ def listar_agendamentos_data(
         )
     ).all()
     return agendamentos
-# =============================================================================
-# ROTAS DE AUTENTICAÇÃO
-# =============================================================================
-
-@app.post("/auth/register", response_model=UserRead)
-def register(user_data: UserCreate, session: Session = Depends(get_session)):
-    """
-    Registrar um novo usuário
-    """
-    try:
-        # Verificar se o username já existe
-        existing_user = session.exec(select(User).where(User.username == user_data.username)).first()
-        if existing_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Username já está em uso"
-            )
-        
-        # Verificar se o email já existe
-        existing_email = session.exec(select(User).where(User.email == user_data.email)).first()
-        if existing_email:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email já está em uso"
-            )
-        
-        # Criar o usuário
-        db_user = User(
-            username=user_data.username,
-            email=user_data.email,
-            full_name=user_data.full_name,
-            role=user_data.role
-        )
-        
-        # Definir a senha (fazer hash)
-        db_user.set_password(user_data.password)
-        
-        session.add(db_user)
-        session.commit()
-        session.refresh(db_user)
-        
-        return db_user
-        
-    except Exception as e:
-        session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao criar usuário: {str(e)}"
-        )
-        
-@app.post("/auth/login", response_model=Token)
-def login(login_data: LoginRequest, session: Session = Depends(get_session)):
-    print(f"Tentativa de login para: {login_data.username}")
-    """
-    Fazer login e obter token de acesso
-    """
-    # Buscar usuário pelo username
-    user = session.exec(select(User).where(User.username == login_data.username)).first()
-    print(f"Usuário encontrado: {user is not None}")
-    
-    if user:
-        print(f"Senha correta: {user.verify_password(login_data.password)}")
-        print(f"Usuário ativo: {user.is_active}")
-    
-    # Verificar se o usuário existe e a senha está correta
-    if not user or not user.verify_password(login_data.password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Username ou senha incorretos"
-        )
-    
-    # Verificar se o usuário está ativo
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Usuário inativo"
-        )
-    
-    # Criar token de acesso
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.username}, 
-        expires_delta=access_token_expires
-    )
-    
-    return {
-        "access_token": access_token,
-        "token_type": "bearer"
-        # Remova a linha abaixo para corresponder ao schema Token
-        # "user": user
-    }
-        
-        
-@app.post("/auth/login-with-user", response_model=LoginResponse)
-def login_with_user(login_data: LoginRequest, session: Session = Depends(get_session)):
-    """
-    Fazer login e obter token de acesso com informações do usuário
-    """
-    user = session.exec(select(User).where(User.username == login_data.username)).first()
-    
-    if not user or not user.verify_password(login_data.password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Username ou senha incorretos"
-        )
-    
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Usuário inativo"
-        )
-    
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.username}, 
-        expires_delta=access_token_expires
-    )
-    
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "user": user
-    }
-
-@app.get("/auth/me", response_model=UserRead)
-async def get_my_info(current_user: User = Depends(get_current_active_user)):
-    """
-    Obter informações do usuário atual
-    """
-    return current_user
-
-@app.put("/auth/me", response_model=UserRead)
-async def update_my_info(
-    user_update: UserUpdate,
-    current_user: User = Depends(get_current_active_user),
-    session: Session = Depends(get_session)
-):
-    """
-    Atualizar informações do usuário atual
-    """
-    update_data = user_update.dict(exclude_unset=True)
-    
-    # Atualizar campos permitidos
-    for field, value in update_data.items():
-        if field == "password" and value:
-            current_user.set_password(value)
-        elif hasattr(current_user, field):
-            setattr(current_user, field, value)
-    
-    current_user.update_timestamp()
-    session.add(current_user)
-    session.commit()
-    session.refresh(current_user)
-    
-    return current_user
 
 # =============================================================================
-# ROTAS ADMINISTRATIVAS (apenas para administradores)
+# ROTAS ADMINISTRATIVAS (Apenas para admin)
 # =============================================================================
 
-def require_admin(current_user: User = Depends(get_current_active_user)):
-    """Verifica se o usuário é administrador"""
-    if current_user.role != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Permissão insuficiente"
-        )
-    return current_user
-
-@app.get("/admin/users", response_model=list[UserRead])
+@app.get("/admin/users")
 async def list_users(
-    skip: int = 0,
-    limit: int = 100,
     current_user: User = Depends(require_admin),
     session: Session = Depends(get_session)
 ):
     """Listar todos os usuários (apenas admin)"""
-    users = session.exec(select(User).offset(skip).limit(limit)).all()
+    users = session.exec(select(User)).all()
     return users
 
-@app.get("/admin/users/{user_id}", response_model=UserRead)
-async def get_user(
+@app.get("/admin/health")
+async def admin_health_check(current_user: User = Depends(require_admin)):
+    """Verificação de saúde para admin"""
+    return {"status": "OK", "message": "Admin: Sistema funcionando corretamente"}
+
+@app.get("/admin/stats")
+async def admin_stats(
+    current_user: User = Depends(require_admin), 
+    session: Session = Depends(get_session)
+):
+    """Estatísticas do sistema (apenas admin)"""
+    total_users = session.exec(select(User)).count()
+    total_clientes = session.exec(select(Cliente)).count()
+    total_agendamentos = session.exec(select(Agendamento)).count()
+    
+    return {
+        "total_users": total_users,
+        "total_clientes": total_clientes,
+        "total_agendamentos": total_agendamentos
+    }
+
+@app.get("/admin/clients")
+async def admin_list_clients(
+    current_user: User = Depends(require_admin),
+    session: Session = Depends(get_session)
+):
+    """Listar todos os clientes (apenas admin)"""
+    clients = session.exec(select(Cliente)).all()
+    return clients
+
+@app.get("/admin/appointments")
+async def admin_list_appointments(
+    current_user: User = Depends(require_admin),
+    session: Session = Depends(get_session)
+):
+    """Listar todos os agendamentos (apenas admin)"""
+    appointments = session.exec(select(Agendamento)).all()
+    return appointments
+
+@app.delete("/admin/users/{user_id}")
+async def admin_delete_user(
     user_id: int,
     current_user: User = Depends(require_admin),
     session: Session = Depends(get_session)
 ):
-    """Obter informações de um usuário específico (apenas admin)"""
+    """Deletar um usuário pelo ID (apenas admin)"""
     user = session.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
-    return user
+    session.delete(user)
+    session.commit()
+    return {"message": "Usuário deletado com sucesso"}
 
+@app.delete("/admin/clients/{client_id}")
+async def admin_delete_client(
+    client_id: int,
+    current_user: User = Depends(require_admin),
+    session: Session = Depends(get_session)
+):
+    """Deletar um cliente pelo ID (apenas admin)"""
+    client = session.get(Cliente, client_id)
+    if not client:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    session.delete(client)
+    session.commit()
+    return {"message": "Cliente deletado com sucesso"}
+
+@app.delete("/admin/appointments/{appointment_id}")
+async def admin_delete_appointment(
+    appointment_id: int,
+    current_user: User = Depends(require_admin),
+    session: Session = Depends(get_session)
+):
+    """Deletar um agendamento pelo ID (apenas admin)"""
+    appointment = session.get(Agendamento, appointment_id)
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Agendamento não encontrado")
+    session.delete(appointment)
+    session.commit()
+    return {"message": "Agendamento deletado com sucesso"}
