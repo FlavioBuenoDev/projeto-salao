@@ -1,0 +1,47 @@
+/* src/components/dashboard/ExportButtons.css */
+.export-buttons h3 {
+  margin-bottom: 15px;
+  color: #2c3e50;
+}
+
+.export-options {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 15px;
+}
+
+.export-btn {
+  background: #3498db;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+  flex: 1;
+  min-width: 200px;
+}
+
+.export-btn:hover:not(:disabled) {
+  background: #2980b9;
+}
+
+.export-btn:disabled {
+  background: #bdc3c7;
+  cursor: not-allowed;
+}
+
+.export-info {
+  background: #e8f4fd;
+  padding: 10px 15px;
+  border-radius: 6px;
+  border-left: 4px solid #3498db;
+}
+
+.export-info p {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 0.9rem;
+}

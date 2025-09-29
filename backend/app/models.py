@@ -10,12 +10,14 @@ class User(SQLModel, table=True):
     hashed_password: str
     role: str = Field(default="user") 
     is_active: bool = Field(default=True)
+    created_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
 
 class Cliente(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     nome: str
     telefone: str
     email: str
+    created_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
 
 class Agendamento(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -23,3 +25,4 @@ class Agendamento(SQLModel, table=True):
     data_hora: datetime
     servico: str
     observacoes: Optional[str] = None
+    created_at: Optional[datetime] = Field(default_factory=datetime.utcnow)

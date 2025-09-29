@@ -1,0 +1,276 @@
+📋 GUIA COMPLETO: Configuração do Projeto para Desenvolvedor Frontend
+Vou criar um passo a passo super detalhado para que o desenvolvedor frontend consiga configurar todo o ambiente backend sem conhecimentos prévios de Python.
+
+🎯 OBJETIVO
+Configurar o ambiente backend completo para que o frontend possa se conectar e desenvolver.
+
+📁 ESTRUTURA DO PROJETO
+text
+projeto-salao/
+├── backend/          # API Python/FastAPI
+├── frontend/         # React (já existe)
+└── README.md
+🔧 PASSO A PASSO - CONFIGURAÇÃO DO BACKEND
+1. INSTALAÇÃO DO PYTHON
+Windows:
+
+Acesse: https://www.python.org/downloads/
+
+Baixe a versão Python 3.11 ou superior
+
+IMPORTANTE: Durante a instalação, marque a opção "Add Python to PATH"
+
+Siga a instalação padrão
+
+Verificação:
+
+Abra o Prompt de Comando (CMD) ou PowerShell
+
+Digite: python --version
+
+Deve aparecer: Python 3.11.x ou superior
+
+2. BAIXAR O PROJETO
+bash
+# Abra o terminal/prompt na pasta onde quer salvar o projeto
+git clone https://github.com/FlavioBuenoDev/projeto-salao.git
+cd projeto-salao
+3. CONFIGURAR AMBIENTE VIRTUAL
+bash
+# Navegue para a pasta backend
+cd backend
+
+# Crie um ambiente virtual (isso isola as dependências)
+python -m venv venv
+
+# Ative o ambiente virtual:
+
+# WINDOWS:
+venv\Scripts\activate
+
+# MAC/LINUX:
+source venv/bin/activate
+
+# Você deve ver (venv) no início da linha do terminal
+4. INSTALAR DEPENDÊNCIAS
+bash
+# Com o ambiente virtual ativado, instale tudo:
+pip install fastapi sqlmodel uvicorn python-jose[cryptography] passlib[bcrypt] python-multipart
+
+# Ou se tiver um arquivo requirements.txt:
+pip install -r requirements.txt
+5. VERIFICAR A ESTRUTURA DE ARQUIVOS
+Confirme que dentro de backend/ existe:
+
+text
+backend/
+├── app/
+│   ├── __init__.py
+│   ├── main.py
+│   ├── models.py
+│   ├── schemas.py
+│   ├── database.py
+│   └── security.py
+└── (outros arquivos)
+6. EXECUTAR O SERVIDOR
+bash
+# Na pasta backend, com o ambiente virtual ativado:
+uvicorn app.main:app --reload
+Saída esperada:
+
+text
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [1234]
+INFO:     Started server process [5678]
+7. TESTAR A API
+Abra o navegador e acesse:
+
+API: http://localhost:8000
+
+Documentação: http://localhost:8000/docs
+
+Health Check: http://localhost:8000/health
+
+🚀 SCRIPT AUTOMÁTICO DE INSTALAÇÃO
+Crie um arquivo setup-backend.bat (Windows) ou setup-backend.sh (Mac/Linux) para automatizar:
+
+Para Windows (setup-backend.bat):
+batch
+@echo off
+echo 🔧 Configurando Ambiente Backend...
+
+echo 1. Navegando para o backend...
+cd backend
+
+echo 2. Criando ambiente virtual...
+python -m venv venv
+
+echo 3. Ativando ambiente virtual...
+call venv\Scripts\activate
+
+echo 4. Instalando dependências...
+pip install fastapi sqlmodel uvicorn python-jose[cryptography] passlib[bcrypt] python-multipart
+
+echo 5. Iniciando servidor...
+echo ✅ Ambiente configurado! Servidor iniciando...
+uvicorn app.main:app --reload
+
+pause
+Para Mac/Linux (setup-backend.sh):
+bash
+#!/bin/bash
+echo "🔧 Configurando Ambiente Backend..."
+
+echo "1. Navegando para o backend..."
+cd backend
+
+echo "2. Criando ambiente virtual..."
+python3 -m venv venv
+
+echo "3. Ativando ambiente virtual..."
+source venv/bin/activate
+
+echo "4. Instalando dependências..."
+pip install fastapi sqlmodel uvicorn python-jose[cryptography] passlib[bcrypt] python-multipart
+
+echo "5. Iniciando servidor..."
+echo "✅ Ambiente configurado! Servidor iniciando..."
+uvicorn app.main:app --reload
+Como usar: Apenas execute o arquivo .bat ou .sh
+
+🔍 SOLUÇÃO DE PROBLEMAS COMUNS
+Erro: "python não é reconhecido"
+Solução: Reinstalar Python marcando "Add Python to PATH"
+
+Erro: ModuleNotFoundError
+Solução: Verificar se o ambiente virtual está ativado ((venv) no terminal)
+
+Erro: Porta 8000 ocupada
+Solução: Usar outra porta:
+
+bash
+uvicorn app.main:app --reload --port 8001
+Esqueceu como ativar o ambiente virtual:
+bash
+# Na pasta backend:
+venv\Scripts\activate  # Windows
+source venv/bin/activate  # Mac/Linux
+📋 CHECKLIST DE CONFIGURAÇÃO
+Python 3.11+ instalado
+
+Projeto clonado do GitHub
+
+Ambiente virtual criado e ativado
+
+Dependências instaladas
+
+Servidor rodando na porta 8000
+
+API respondendo em http://localhost:8000
+
+Documentação acessível em http://localhost:8000/docs
+
+🌐 CONEXÃO FRONTEND-BACKEND
+URL da API:
+text
+http://localhost:8000
+Endpoints Principais para o Frontend:
+javascript
+// Autenticação
+POST /register
+POST /login
+GET /auth/me
+
+// Clientes
+GET /clientes/
+POST /clientes/
+PUT /clientes/{id}
+DELETE /clientes/{id}
+
+// Agendamentos
+GET /agendamentos/
+POST /agendamentos/
+PUT /agendamentos/{id}
+DELETE /agendamentos/{id}
+Exemplo de Uso no Frontend:
+javascript
+// Login
+const response = await fetch('http://localhost:8000/login', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/x-www-form-urlencoded',
+  },
+  body: 'username=admin&password=senha123'
+});
+
+const data = await response.json();
+const token = data.access_token;
+
+// Request autenticada
+const clientes = await fetch('http://localhost:8000/clientes/', {
+  headers: {
+    'Authorization': `Bearer ${token}`
+  }
+});
+📞 SUPORTE - O QUE FAZER SE DER ERRO
+1. Verificar etapas básicas:
+bash
+python --version
+cd projeto-salao/backend
+dir (ou ls)  # Ver se os arquivos estão lá
+2. Recriar ambiente virtual:
+bash
+cd backend
+deactivate  # Se estiver ativo
+rmdir /s venv  # Windows - remove pasta
+rm -rf venv   # Mac/Linux - remove pasta
+python -m venv venv
+venv\Scripts\activate
+pip install [dependências]
+3. Logs de erro:
+Copiar o erro exato
+
+Verificar em qual passo aconteceu
+
+Verificar se todos os arquivos estão no lugar certo
+
+🎉 TESTE FINAL
+Após configurar, teste estes passos:
+
+Registrar um usuário:
+
+bash
+curl -X POST "http://localhost:8000/register" \
+  -H "Content-Type: application/json" \
+  -d '{"username": "teste", "email": "teste@email.com", "password": "123456"}'
+Fazer login:
+
+bash
+curl -X POST "http://localhost:8000/login" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=teste&password=123456"
+Acessar documentação: http://localhost:8000/docs
+
+📚 RECURSOS ADICIONAIS
+Comandos Úteis:
+bash
+# Ver dependências instaladas
+pip list
+
+# Salvar dependências em arquivo
+pip freeze > requirements.txt
+
+# Desativar ambiente virtual
+deactivate
+
+# Ver processos na porta 8000
+netstat -ano | findstr :8000  # Windows
+lsof -i :8000                 # Mac/Linux
+Arquivos Importantes:
+backend/app/main.py - API principal
+
+backend/app/models.py - Modelos de dados
+
+backend/app/schemas.py - Estruturas de API
+
+backend/app/security.py - Autenticação

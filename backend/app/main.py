@@ -469,3 +469,176 @@ async def admin_delete_appointment(
     session.delete(appointment)
     session.commit()
     return {"message": "Agendamento deletado com sucesso"}
+
+
+# =============================================================================
+# ROTAS RELATÓRIOS (Apenas para admin)
+# =============================================================================
+
+# Importações adicionais no topo do main.py
+from app.reports import ReportService
+from fastapi.responses import StreamingResponse, JSONResponse
+import pandas as pd
+import io
+import csv
+
+# Endpoints de relatórios
+@app.get("/admin/reports/stats")
+def get_estatisticas_gerais(
+    current_user: User = Depends(require_admin),
+    session: Session = Depends(get_session)
+):
+    """Estatísticas gerais do sistema"""
+    report_service = ReportService(session)
+    return report_service.get_general_stats()
+
+@app.get("/admin/reports/agendamentos-servico")
+def get_agendamentos_por_servico(
+    dias: int = 30,
+    current_user: User = Depends(require_admin),
+    session: Session = Depends(get_session)
+):
+    """Agendamentos agrupados por serviço"""
+    report_service = ReportService(session)
+    return report_service.get_agendamentos_por_servico(dias)
+
+@app.get("/admin/reports/agendamentos-diarios")
+def get_agendamentos_diarios(
+    dias: int = 7,
+    current_user: User = Depends(require_admin),
+    session: Session = Depends(get_session)
+):
+    """Agendamentos por dia"""
+    report_service = ReportService(session)
+    return report_service.get_agendamentos_por_dia(dias)
+
+@app.get("/admin/reports/clientes-novos")
+def get_clientes_novos(
+    dias: int = 30,
+    current_user: User = Depends(require_admin),
+    session: Session = Depends(get_session)
+):
+    """Clientes novos por período"""
+    report_service = ReportService(session)
+    return report_service.get_clientes_novos_por_periodo(dias)
+
+@app.get("/admin/reports/top-clientes")
+def get_top_clientes(
+    limite: int = 10,
+    current_user: User = Depends(require_admin),
+    session: Session = Depends(get_session)
+):
+    """Top clientes"""
+    report_service = ReportService(session)
+    return report_service.get_top_clientes(limite)
+
+# Endpoint para exportar relatórios em CSV
+@app.get("/admin/reports/export/csv")
+def exportar_relatorio_csv(
+    tipo: str,  # clientes, agendamentos, servicos
+    data_inicio: Optional[str] = None,
+    data_fim: Optional[str] = None,
+    current_user: User = Depends(require_admin),
+    session: Session = Depends(get_session)
+):
+    """Exportar relatório em CSV"""
+    
+    # Converter datas
+    if data_inicio:
+        data_inicio = datetime.fromisoformat(data_inicio.replace('Z', '+00:00'))
+    if data_fim:
+        data_fim = datetime.fromisoformat(data_fim.replace('Z', '+00:00'))
+    
+    if tipo == "clientes":
+        # Exportar clientes
+        clientes = session.exec(select(Cliente)).all()
+        
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(['ID', 'Nome', 'Telefone', 'Email', 'Data Cadastro'])
+        
+        for cliente in clientes:
+            writer.writerow([
+                cliente.id,
+                cliente.nome,
+                cliente.telefone,
+                cliente.email,
+                cliente.created_at.strftime("%d/%m/%Y %H:%M") if cliente.created_at else ""
+            ])
+        
+        output.seek(0)
+        return StreamingResponse(
+            io.BytesIO(output.getvalue().encode()),
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=clientes.csv"}
+        )
+    
+    elif tipo == "agendamentos":
+        # Exportar agendamentos
+        query = select(Agendamento, Cliente).join(Cliente)
+        if data_inicio:
+            query = query.where(Agendamento.data_hora >= data_inicio)
+        if data_fim:
+            query = query.where(Agendamento.data_hora <= data_fim)
+        
+        resultados = session.exec(query).all()
+        
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(['ID', 'Cliente', 'Data/Hora', 'Serviço', 'Observações'])
+        
+        for agendamento, cliente in resultados:
+            writer.writerow([
+                agendamento.id,
+                cliente.nome,
+                agendamento.data_hora.strftime("%d/%m/%Y %H:%M"),
+                agendamento.servico,
+                agendamento.observacoes or ""
+            ])
+        
+        output.seek(0)
+        return StreamingResponse(
+            io.BytesIO(output.getvalue().encode()),
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename=agendamentos_{datetime.now().strftime('%Y%m%d')}.csv"}
+        )
+    
+    elif tipo == "servicos":
+        # Exportar resumo por serviços
+        report_service = ReportService(session)
+        servicos = report_service.get_agendamentos_por_servico(365)  # Último ano
+        
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(['Serviço', 'Quantidade', 'Percentual'])
+        
+        for servico in servicos:
+            writer.writerow([
+                servico['servico'],
+                servico['quantidade'],
+                f"{servico['percentual']}%"
+            ])
+        
+        output.seek(0)
+        return StreamingResponse(
+            io.BytesIO(output.getvalue().encode()),
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=servicos.csv"}
+        )
+
+# Endpoint para dados do dashboard
+@app.get("/admin/reports/dashboard")
+def get_dashboard_data(
+    current_user: User = Depends(require_admin),
+    session: Session = Depends(get_session)
+):
+    """Dados completos para o dashboard"""
+    report_service = ReportService(session)
+    
+    return {
+        "estatisticas_gerais": report_service.get_general_stats(),
+        "agendamentos_por_servico": report_service.get_agendamentos_por_servico(30),
+        "agendamentos_diarios": report_service.get_agendamentos_por_dia(7),
+        "clientes_novos": report_service.get_clientes_novos_por_periodo(30),
+        "top_clientes": report_service.get_top_clientes(5)
+    }

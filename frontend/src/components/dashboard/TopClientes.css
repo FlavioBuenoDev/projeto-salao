@@ -1,0 +1,54 @@
+/* src/components/dashboard/TopClientes.css */
+.top-clientes h3 {
+  margin-bottom: 15px;
+  color: #2c3e50;
+  text-align: center;
+}
+
+.clientes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cliente-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+}
+
+.cliente-item:hover {
+  background: #e9ecef;
+}
+
+.cliente-medal {
+  font-size: 1.5rem;
+}
+
+.cliente-info {
+  flex: 1;
+}
+
+.cliente-info strong {
+  display: block;
+  color: #2c3e50;
+  margin-bottom: 2px;
+}
+
+.cliente-info span {
+  font-size: 0.8rem;
+  color: #7f8c8d;
+}
+
+.agendamentos-count {
+  background: #3498db;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
