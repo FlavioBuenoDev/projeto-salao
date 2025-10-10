@@ -1,13 +1,19 @@
 // src/components/dashboard/TopClientes.jsx
-import './TopClientes.css';
+import "./TopClientes.css";
 
-export default function TopClientes({ data }) {
+import PropTypes from "prop-types";
+
+function TopClientes({ data }) {
   const getMedal = (posicao) => {
-    switch(posicao) {
-      case 1: return '🥇';
-      case 2: return '🥈';
-      case 3: return '🥉';
-      default: return '⭐';
+    switch (posicao) {
+      case 1:
+        return "🥇";
+      case 2:
+        return "🥈";
+      case 3:
+        return "🥉";
+      default:
+        return "⭐";
     }
   };
 
@@ -15,11 +21,9 @@ export default function TopClientes({ data }) {
     <div className="top-clientes">
       <h3>🏆 Top Clientes</h3>
       <div className="clientes-list">
-        {data.map(cliente => (
+        {data.map((cliente) => (
           <div key={cliente.email} className="cliente-item">
-            <div className="cliente-medal">
-              {getMedal(cliente.posicao)}
-            </div>
+            <div className="cliente-medal">{getMedal(cliente.posicao)}</div>
             <div className="cliente-info">
               <strong>{cliente.nome}</strong>
               <span>{cliente.email}</span>
@@ -35,3 +39,9 @@ export default function TopClientes({ data }) {
     </div>
   );
 }
+
+TopClientes.propTypes = {
+  data: PropTypes.arrayOf(PropTypes.object).isRequired,
+};
+
+export default TopClientes;

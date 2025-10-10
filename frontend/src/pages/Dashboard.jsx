@@ -1,34 +1,34 @@
 // src/pages/Dashboard.jsx
-import { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { api } from '../services/api';
-import MetricCard from '../components/dashboard/MetricCard';
-import ServicosChart from '../components/dashboard/ServicosChart';
-import AgendamentosChart from '../components/dashboard/AgendamentosChart';
-import TopClientes from '../components/dashboard/TopClientes';
-import ExportButtons from '../components/dashboard/ExportButtons';
-import './Dashboard.css';
+import { useState, useEffect } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import { api } from "../services/api";
+import MetricCard from "../components/dashboard/MetricCard";
+import ServicosChart from "../components/dashboard/ServicosChart";
+import AgendamentosChart from "../components/dashboard/AgendamentosChart";
+import TopClientes from "../components/dashboard/TopClientes";
+import ExportButtons from "../components/dashboard/ExportButtons";
+import "./Dashboard.css";
 
 export default function Dashboard() {
-  const { user, token } = useAuth();
+  const { token } = useAuth();
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   useEffect(() => {
     loadDashboardData();
-  }, []);
+  }, [loadDashboardData]);
 
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const data = await api.request('/admin/reports/dashboard', {
-        headers: { Authorization: `Bearer ${token}` }
+      const data = await api.request("/admin/reports/dashboard", {
+        headers: { Authorization: `Bearer ${token}` },
       });
       setDashboardData(data);
     } catch (err) {
-      setError('Erro ao carregar dados do dashboard');
-      console.error('Erro:', err);
+      setError("Erro ao carregar dados do dashboard");
+      console.error("Erro:", err);
     } finally {
       setLoading(false);
     }
@@ -51,7 +51,13 @@ export default function Dashboard() {
     );
   }
 
-  const { estatisticas_gerais, agendamentos_por_servico, agendamentos_diarios, clientes_novos, top_clientes } = dashboardData;
+  const {
+    estatisticas_gerais,
+    agendamentos_por_servico,
+    agendamentos_diarios,
+    clientes_novos,
+    top_clientes,
+  } = dashboardData;
 
   return (
     <div className="dashboard">
@@ -106,7 +112,7 @@ export default function Dashboard() {
           <ServicosChart data={agendamentos_por_servico} />
         </div>
         <div className="chart-container">
-          <AgendamentosChart 
+          <AgendamentosChart
             agendamentosData={agendamentos_diarios}
             clientesData={clientes_novos}
           />

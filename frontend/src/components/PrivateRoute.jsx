@@ -1,8 +1,10 @@
 // src/components/PrivateRoute.jsx
-import { useAuth } from '../contexts/AuthContext';
-import { Navigate, useLocation } from 'react-router-dom';
 
-export default function PrivateRoute({ children }) {
+import PropTypes from "prop-types";
+import { useAuth } from "../contexts/AuthContext";
+import { Navigate, useLocation } from "react-router-dom";
+
+function PrivateRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
   const location = useLocation();
 
@@ -21,3 +23,9 @@ export default function PrivateRoute({ children }) {
 
   return children;
 }
+
+PrivateRoute.propTypes = {
+  children: PropTypes.node,
+};
+
+export default PrivateRoute;

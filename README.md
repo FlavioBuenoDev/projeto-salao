@@ -1,69 +1,78 @@
-# React + TypeScript + Vite
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+# Projeto Salão
 
-Currently, two official plugins are available:
+Sistema completo para gestão de salão de beleza, com backend em FastAPI (Python) e frontend em React + Vite.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Estrutura
 
-## Expanding the ESLint configuration
+- **backend/**: API REST com FastAPI, SQLModel, autenticação JWT, relatórios, integração com email.
+- **frontend/**: Interface web moderna com React, Vite, MUI, gráficos e autenticação.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Como rodar localmente
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Pré-requisitos
+- Docker e Docker Compose instalados (recomendado)
+- Python 3.11+ (opcional para rodar backend sem Docker)
+- Node.js 18+ (opcional para rodar frontend sem Docker)
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Backend (FastAPI)
+```bash
+cd backend
+# Instale dependências (opcional)
+pip install -r requirements.txt
+# Execute localmente
+uvicorn app.main:app --reload
+# Ou rode testes
+pytest
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Frontend (React)
+```bash
+cd frontend
+# Instale dependências
+npm install
+# Execute em modo dev
+npm run dev
+# Build para produção
+npm run build
+# Testes de lint/format
+npm run lint
+npm run format
 ```
+
+## Usando Docker
+
+### Backend produção
+```bash
+cd backend
+docker build -f Dockerfile.prod -t salao-backend-prod .
+docker run -p 8000:8000 salao-backend-prod
+```
+
+### Frontend produção
+```bash
+cd frontend
+docker build -f Dockerfile.prod -t salao-frontend-prod .
+docker run -p 80:80 salao-frontend-prod
+```
+
+### Docker Compose (dev ou prod)
+```bash
+docker-compose up --build
+# Para produção use: docker-compose -f docker-compose.prod.yml up --build
+```
+
+## Variáveis de ambiente
+- Configure o arquivo `.env` no backend para credenciais, segredos e configurações.
+- Configure o arquivo `nginx.conf` no frontend para rotas e proxy se necessário.
+
+## Testes
+- Backend: `pytest backend/tests/`
+- Frontend: `npm run lint` e `npm run format`
+
+## Relatórios e exportação
+- O backend gera relatórios em PDF e gráficos via endpoints protegidos.
+- O frontend permite exportar dados e visualizar métricas em tempo real.
+
+## Contato e suporte
+Para dúvidas, sugestões ou problemas, abra uma issue ou entre em contato com o mantenedor.

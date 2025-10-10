@@ -1,12 +1,12 @@
 // src/components/Header.jsx
-import { useAuth } from '../contexts/AuthContext';
-import './Header.css';
+import { useAuth } from "../contexts/AuthContext";
+import "./Header.css";
 
 export default function Header() {
   const { user, logout, isAuthenticated } = useAuth();
 
   const handleLogout = () => {
-    if (window.confirm('Tem certeza que deseja sair?')) {
+    if (window.confirm("Tem certeza que deseja sair?")) {
       logout();
     }
   };
@@ -19,13 +19,10 @@ export default function Header() {
     <header className="header">
       <div className="header-content">
         <h1>Sistema de Agendamento</h1>
-        
+
         <div className="header-user">
           <span>Olá, {user?.username}</span>
-          <button 
-            onClick={handleLogout}
-            className="logout-button"
-          >
+          <button onClick={handleLogout} className="logout-button">
             Sair
           </button>
         </div>

@@ -1,4 +1,6 @@
-import './Loading.css'
+
+import PropTypes from "prop-types";
+import "./Loading.css";
 
 function Loading({ message = "Carregando..." }) {
   return (
@@ -6,7 +8,11 @@ function Loading({ message = "Carregando..." }) {
       <div className="loading-spinner"></div>
       <p className="loading-message">{message}</p>
     </div>
-  )
+  );
 }
 
-export default Loading
+Loading.propTypes = {
+  message: PropTypes.string,
+};
+
+export default Loading;

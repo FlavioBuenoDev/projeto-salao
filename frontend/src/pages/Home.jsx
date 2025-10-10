@@ -1,4 +1,4 @@
-import React from 'react'
+import React from "react";
 
 function Home() {
   return (
@@ -6,7 +6,7 @@ function Home() {
       <h1>Página Inicial - Sistema de Agendamento</h1>
       <h2>Bem-vindo ao sistema de agendamento para salão de beleza!</h2>
     </div>
-  )
+  );
 }
 
-export default Home
+export default Home;

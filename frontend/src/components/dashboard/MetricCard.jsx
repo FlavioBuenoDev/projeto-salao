@@ -1,7 +1,8 @@
 // src/components/dashboard/MetricCard.jsx
-import './MetricCard.css';
+import PropTypes from "prop-types";
+import "./MetricCard.css";
 
-export default function MetricCard({ title, value, icon, color }) {
+function MetricCard({ title, value, icon, color }) {
   return (
     <div className="metric-card" style={{ borderLeftColor: color }}>
       <div className="metric-icon" style={{ backgroundColor: color }}>
@@ -14,3 +15,12 @@ export default function MetricCard({ title, value, icon, color }) {
     </div>
   );
 }
+
+MetricCard.propTypes = {
+  title: PropTypes.string.isRequired,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  icon: PropTypes.node,
+  color: PropTypes.string,
+};
+
+export default MetricCard;

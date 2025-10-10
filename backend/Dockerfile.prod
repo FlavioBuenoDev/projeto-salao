@@ -1,6 +1,9 @@
 # Dockerfile para produção
 # Build: docker build -f Dockerfile.prod -t salao-backend-prod .
 
+# Dockerfile para produção
+# Build: docker build -f Dockerfile.prod -t salao-backend-prod .
+
 FROM python:3.11-slim
 
 # Variáveis de ambiente para produção
@@ -45,10 +48,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "import requests; requests.get('http://localhost:8000/health')"
 
 # Comando para produção com Gunicorn
-CMD ["gunicorn", "app.main:app", \
-     "--workers", "4", \
-     "--worker-class", "uvicorn.workers.UvicornWorker", \
-     "--bind", "0.0.0.0:8000", \
-     "--access-logfile", "-", \
-     "--error-logfile", "-", \
-     "--log-level", "info"]
+CMD ["gunicorn", "app.main:app", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000", "--access-logfile", "-", "--error-logfile", "-", "--log-level", "info"]

@@ -1,52 +1,52 @@
 // src/pages/Login.jsx
-import { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { useLocation, useNavigate, Link } from 'react-router-dom';
-import './Auth.css';
+import { useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import { useLocation, useNavigate, Link } from "react-router-dom";
+import "./Auth.css";
 
 export default function Login() {
   const [formData, setFormData] = useState({
-    username: '',
-    password: ''
+    username: "",
+    password: "",
   });
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  
+
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   // Pegar a página que o usuário tentou acessar antes do login
-  const from = location.state?.from?.pathname || '/';
+  const from = location.state?.from?.pathname || "/";
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
     // Limpar erro quando usuário começar a digitar
-    if (error) setError('');
+    if (error) setError("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.username || !formData.password) {
-      setError('Por favor, preencha todos os campos');
+      setError("Por favor, preencha todos os campos");
       return;
     }
 
     setLoading(true);
-    setError('');
+    setError("");
 
     const result = await login(formData.username, formData.password);
-    
+
     if (result.success) {
       navigate(from, { replace: true });
     } else {
       setError(result.error);
     }
-    
+
     setLoading(false);
   };
 
@@ -55,12 +55,8 @@ export default function Login() {
       <div className="auth-card">
         <h2>Login</h2>
         <p className="auth-subtitle">Acesse sua conta</p>
-        
-        {error && (
-          <div className="error-message">
-            {error}
-          </div>
-        )}
+
+        {error && <div className="error-message">{error}</div>}
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
@@ -89,12 +85,8 @@ export default function Login() {
             />
           </div>
 
-          <button 
-            type="submit" 
-            className="auth-button"
-            disabled={loading}
-          >
-            {loading ? 'Entrando...' : 'Entrar'}
+          <button type="submit" className="auth-button" disabled={loading}>
+            {loading ? "Entrando..." : "Entrar"}
           </button>
         </form>
 

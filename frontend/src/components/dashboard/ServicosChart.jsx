@@ -1,44 +1,47 @@
 // src/components/dashboard/ServicosChart.jsx
-import { Doughnut } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  ArcElement,
-  Tooltip,
-  Legend
-} from 'chart.js';
+
+import PropTypes from "prop-types";
+import { Doughnut } from "react-chartjs-2";
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-export default function ServicosChart({ data }) {
+function ServicosChart({ data }) {
   const chartData = {
-    labels: data.map(item => item.servico),
+    labels: data.map((item) => item.servico),
     datasets: [
       {
-        data: data.map(item => item.quantidade),
+        data: data.map((item) => item.quantidade),
         backgroundColor: [
-          '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
-          '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
+          "#FF6384",
+          "#36A2EB",
+          "#FFCE56",
+          "#4BC0C0",
+          "#9966FF",
+          "#FF9F40",
+          "#FF6384",
+          "#C9CBCF",
         ],
         borderWidth: 2,
-        borderColor: '#fff'
-      }
-    ]
+        borderColor: "#fff",
+      },
+    ],
   };
 
   const options = {
     responsive: true,
     plugins: {
       legend: {
-        position: 'bottom',
+        position: "bottom",
       },
       title: {
         display: true,
-        text: '📊 Agendamentos por Serviço (Últimos 30 dias)',
+        text: "📊 Agendamentos por Serviço (últimos 30 dias)",
         font: {
-          size: 16
-        }
-      }
-    }
+          size: 16,
+        },
+      },
+    },
   };
 
   return (
@@ -47,3 +50,9 @@ export default function ServicosChart({ data }) {
     </div>
   );
 }
+
+ServicosChart.propTypes = {
+  data: PropTypes.arrayOf(PropTypes.object).isRequired,
+};
+
+export default ServicosChart;

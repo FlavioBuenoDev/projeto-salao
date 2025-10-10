@@ -59,7 +59,7 @@ class AgendamentoRead(SQLModel):
     data_hora: datetime
     servico: str
     observacoes: Optional[str] = None
-    cliente: ClienteRead  # ⚠️ Remover por enquanto para evitar recursão
+    # cliente: ClienteRead  # Removido para evitar erro de validação
 
 # =============================================================================
 # SCHEMAS PARA AUTENTICAÇÃO (Usando SQLModel)

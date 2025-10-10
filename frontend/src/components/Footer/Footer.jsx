@@ -1,4 +1,4 @@
-import './Footer.css'
+import "./Footer.css";
 
 function Footer() {
   return (
@@ -8,7 +8,7 @@ function Footer() {
         <p>Sistema de agendamento desenvolvido com React e FastAPI</p>
       </div>
     </footer>
-  )
+  );
 }
 
-export default Footer
+export default Footer;

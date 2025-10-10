@@ -1,4 +1,14 @@
-function Input({ label, type = "text", value, onChange, required = false, placeholder }) {
+
+import PropTypes from "prop-types";
+
+function Input({
+  label,
+  type = "text",
+  value,
+  onChange,
+  required = false,
+  placeholder,
+}) {
   return (
     <div className="form-group">
       {label && <label className="form-label">{label}</label>}
@@ -11,7 +21,16 @@ function Input({ label, type = "text", value, onChange, required = false, placeh
         className="form-input"
       />
     </div>
-  )
+  );
 }
 
-export default Input
+Input.propTypes = {
+  label: PropTypes.string,
+  type: PropTypes.string,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  onChange: PropTypes.func.isRequired,
+  required: PropTypes.bool,
+  placeholder: PropTypes.string,
+};
+
+export default Input;
