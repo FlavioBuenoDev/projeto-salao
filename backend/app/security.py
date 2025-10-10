@@ -1,4 +1,5 @@
 # backend/app/security.py
+import os
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
@@ -10,7 +11,7 @@ from .database import get_session
 from .models import User
 
 # Configurações do JWT
-SECRET_KEY = "n5KVUSF3Sl"
+SECRET_KEY = os.getenv("SECRET_KEY", "n5KVUSF3Sl")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 

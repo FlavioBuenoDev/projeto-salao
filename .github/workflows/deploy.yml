@@ -1,0 +1,57 @@
+# GitHub Actions - Deploy para Produção
+# Roda manualmente ou ao fazer push na branch main
+
+name: 🚀 Deploy Produção
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:  # Permite rodar manualmente
+
+jobs:
+  deploy:
+    name: 🚀 Deploy
+    runs-on: ubuntu-latest
+    environment: "production":
+      url: https://seusalao.com  # URL do site em produção
+      
+    
+    steps:
+    - name: 📥 Checkout código
+      uses: actions/checkout@v4
+    
+    - name: 🔍 Verificar branch
+      run: |
+        echo "Branch: ${{ github.ref_name }}"
+        if [ "${{ github.ref_name }}" != "main" ]; then
+          echo "❌ Deploy só é permitido na branch main"
+          exit 1
+        fi
+    
+    # ====================
+    # Deploy Backend
+    # ====================
+    - name: 🐍 Deploy Backend
+      run: |
+        echo "🚀 Configurar deploy do backend aqui"
+        echo "Exemplos:"
+        echo "  - Railway: railway up"
+        echo "  - Render: render deploy"
+        echo "  - Heroku: git push heroku main"
+        # Adicionar comandos específicos quando escolher plataforma
+    
+    # ====================
+    # Deploy Frontend
+    # ====================
+    - name: ⚛️ Deploy Frontend
+      run: |
+        echo "🚀 Configurar deploy do frontend aqui"
+        echo "Exemplos:"
+        echo "  - Vercel: vercel --prod"
+        echo "  - Netlify: netlify deploy --prod"
+        # Adicionar comandos específicos quando escolher plataforma
+    
+    - name: ✅ Deploy concluído
+      run: |
+        echo "✅ Deploy realizado com sucesso!"
+        echo "🌐 Verifique: https://seusalao.com"

@@ -1,0 +1,116 @@
+# GitHub Actions - Testes Automáticos
+# Roda automaticamente em push/PR para main e develop  
+  name: 🧪 Testes e Qualidade
+
+  on:
+    push:
+      branches: [ main, develop ]
+    pull_request:
+      branches: [ main, develop ]
+
+  jobs:
+    # ====================
+    # Backend Tests
+    # ====================
+    backend-tests:
+      name: 🐍 Backend - Testes
+      runs-on: ubuntu-latest
+      
+      services:
+        postgres:
+          image: postgres:15-alpine
+          env:
+            POSTGRES_USER: test_user
+            POSTGRES_PASSWORD: test_pass
+            POSTGRES_DB: test_db
+          ports:
+            - 5432:5432
+          options: >-
+            --health-cmd pg_isready
+            --health-interval 10s
+            --health-timeout 5s
+            --health-retries 5
+
+      steps:
+      - name: 📥 Checkout código
+        uses: actions/checkout@v4
+      
+      - name: 🐍 Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: 📦 Instalar dependências
+        run: |
+          cd backend
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-asyncio httpx
+      
+      - name: 🧪 Rodar testes
+        env:
+          DATABASE_URL: postgresql://test_user:test_pass@localhost:5432/test_db
+          SECRET_KEY: test-secret-key-for-ci-cd-testing
+          ENVIRONMENT: test
+        run: |
+          cd backend
+          pytest tests/ -v --cov=app --cov-report=xml --cov-report=term
+      
+      - name: 📊 Upload cobertura para Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./backend/coverage.xml
+          flags: backend
+          name: backend-coverage
+    
+    # ====================
+    # Backend Linting
+    # ====================
+    backend-lint:
+      name: 🐍 Backend - Linting
+      runs-on: ubuntu-latest
+      
+      steps:
+      - name: 📥 Checkout código
+        uses: actions/checkout@v4
+      
+      - name: 🐍 Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: 📦 Instalar ferramentas
+        run: |
+          pip install black isort flake8
+      
+      - name: 🔍 Black (formatação)
+        run: |
+          cd backend
+          black --check app/ tests/
+      
+      - name: 🔍 isort (imports)
+        run: |
+          cd backend
+          isort --check-only app/ tests/
+      
+      - name: 🔍 Flake8 (style)
+        run: |
+          cd backend
+          flake8 app/ tests/ --max-line-length=88 --extend-ignore=E203,W503
+
+    # ====================
+    # Frontend Tests
+    # ====================
+    frontend-tests:
+      name: ⚛️ Frontend - Testes
+      runs-on: ubuntu-latest
+      
+      steps:
+      - name: 📥 Checkout código
+        uses: actions/checkout@v4
+      
+      - name: 📦 Setup Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
