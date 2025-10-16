@@ -1,3 +1,5 @@
+
+import os
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timezone
 from typing import Optional
@@ -29,9 +31,11 @@ from app.security import (
 # Lifespan handler para eventos de startup e shutdown
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup event - criar tabelas
+    # Startup event - criar tabelas apenas se variável de ambiente estiver definida
     print("Iniciando aplicação...")
-    SQLModel.metadata.create_all(engine)
+    if os.getenv("CREATE_TABLES", "0") == "1":
+        SQLModel.metadata.create_all(engine)
+        print("Tabelas criadas!")
     yield
     # Shutdown event - limpar recursos se necessário
     print("Encerrando aplicação...")
