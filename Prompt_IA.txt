@@ -1,0 +1,74 @@
+Assuma o papel de líder de um projeto já em andamento.
+O sistema de agendamento para salão de beleza
+
+O que já temos pronto:
+
+Backend (FastAPI + SQLModel)
+
+API REST funcional para gestão de clientes, agendamentos, usuários e relatórios.
+Autenticação JWT implementada e testada.
+Testes automatizados (pytest) corrigidos e passando.
+Dockerfile otimizado para produção (Gunicorn + Uvicorn).
+Banco de dados não é sobrescrito em produção.
+Variáveis de ambiente e configuração documentadas.
+Rotas protegidas e validações robustas.
+Relatórios em PDF e gráficos via endpoints.
+Frontend (React + Vite)
+
+Interface moderna com autenticação, dashboard, gráficos e exportação de dados.
+Lint e format limpos, dependências atualizadas.
+Dockerfile para produção (build + nginx).
+PropTypes e boas práticas aplicadas.
+README completo com instruções de uso, build, testes e Docker.
+Infraestrutura
+
+Docker Compose para dev e produção.
+Documentação clara para setup, build, testes e variáveis de ambiente.
+
+
+Estrutura do Projeto
+
+projeto-salao/
+├── backend/
+│   ├── app/
+│   │   ├── __init__.py
+│   │   ├── main.py           # FastAPI principal, rotas, lifespan
+│   │   ├── models.py         # Modelos SQLModel: User, Cliente, Agendamento
+│   │   ├── schemas.py        # Schemas Pydantic/SQLModel para API
+│   │   ├── database.py       # Conexão e helpers do banco
+│   │   ├── auth.py           # Lógica de autenticação JWT
+│   │   ├── security.py       # Funções de segurança (hash, token)
+│   │   ├── reports.py        # Relatórios PDF e gráficos
+│   ├── scripts/
+│   │   ├── init_database.py  # Script para inicializar/migrar banco
+│   │   └── ...               # Outros scripts utilitários
+│   ├── tests/
+│   │   ├── test_agendamentos.py
+│   │   ├── test_clientes.py
+│   │   ├── test_consultas.py
+│   │   ├── test_validacoes.py
+│   │   └── conftest.py       # Configuração de testes
+│   ├── requirements.txt      # Dependências Python
+│   ├── Dockerfile            # Docker dev
+│   ├── Dockerfile.prod       # Docker produção
+│   └── ...                   # Configs, .env, etc.
+│
+├── frontend/
+│   ├── src/
+│   │   ├── App.jsx / App.tsx # Componente principal
+│   │   ├── main.tsx          # Entry point
+│   │   ├── components/       # Componentes reutilizáveis (Header, Footer, Modal, Dashboard, etc)
+│   │   ├── pages/            # Páginas (Login, Dashboard, Agendamentos, etc)
+│   │   ├── contexts/         # Contextos globais (ex: AuthContext)
+│   │   ├── services/         # API service (axios/fetch)
+│   │   └── types/            # Tipos globais
+│   ├── public/               # Assets estáticos
+│   ├── Dockerfile            # Docker dev
+│   ├── Dockerfile.prod       # Docker produção (nginx)
+│   ├── package.json          # Dependências JS/TS
+│   └── ...                   # Configs, README, etc.
+│
+├── docker-compose.yml        # Compose para dev
+├── docker-compose.prod.yml   # Compose para produção
+├── README.md                 # Documentação principal
+└── ...                       # Licença, scripts, configs extras
