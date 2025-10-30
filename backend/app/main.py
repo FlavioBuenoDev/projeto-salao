@@ -28,6 +28,9 @@ from app.security import (
     require_admin
 )
 
+# Importar novos módulos de roteadores
+from .routers import servicos, profissionais # Importe os novos módulos
+
 # Lifespan handler para eventos de startup e shutdown
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -46,6 +49,9 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+app.include_router(servicos.router, prefix="/servicos", tags=["Serviços de Salão"])
+app.include_router(profissionais.router, prefix="/profissionais", tags=["Profissionais"])
 
 app.add_middleware(
     CORSMiddleware,

@@ -61,6 +61,42 @@ class AgendamentoRead(SQLModel):
     observacoes: Optional[str] = None
     # cliente: ClienteRead  # Removido para evitar erro de validação
 
+
+# =============================================================================
+# SCHEMAS PARA Servico (Usando SQLModel para consistência)
+# =============================================================================
+
+class ServicoBase(SQLModel):
+    nome: str
+    descricao: Optional[str] = None
+    duracao_minutos: int
+    preco: float
+
+class ServicoCreate(ServicoBase):
+    pass
+
+class ServicoRead(ServicoBase):
+    id: int
+
+
+
+# =============================================================================
+# SCHEMAS PARA Profissional (Usando SQLModel para consistência)
+# =============================================================================
+
+class ProfissionalBase(SQLModel):
+    nome: str
+    email: str
+    ativo: bool = True
+
+class ProfissionalCreate(ProfissionalBase):
+    pass
+
+class ProfissionalRead(ProfissionalBase):
+    id: int
+    servicos: list[ServicoRead] = []
+
+
 # =============================================================================
 # SCHEMAS PARA AUTENTICAÇÃO (Usando SQLModel)
 # =============================================================================
